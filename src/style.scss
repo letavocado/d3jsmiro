@@ -1,0 +1,55 @@
+:root {
+  --color-indigo: #4262ff;
+  --color-lightgray: #eaeaea88;
+  --color-lightpurple: #a2c1f7;
+  --color-yellow: #ffd02f;
+  --color-white: #ffffff;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+#node-g.drawing {
+  .node__circle {
+    pointer-events: none !important;
+  }
+  circle.circle-g {
+    r: 20px;
+  }
+}
+
+.node__rect {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+    stroke: var(--color-indigo) !important;
+  }
+
+  &.hover {
+    fill: var(--color-lightgray) !important;
+  }
+}
+
+.node__circle {
+  &:hover {
+    fill: var(--color-lightpurple);
+    r: 5px;
+    stroke: var(--color-lightpurple);
+    stroke-width: 1px;
+    transition: all 0.1s ease-in;
+  }
+
+  &.linked {
+    stroke: var(--color-yellow);
+    r: 5px;
+  }
+}
+
+circle[class^='draw-line__point'] {
+  fill: var(--color-white);
+  stroke: var(--color-yellow);
+}
