@@ -49,7 +49,7 @@ const mainG = svg.append('g').attr('id', 'main-g')
 const linkG = mainG.append('g').attr('id', 'link-g')
 const nodeG = mainG.append('g').attr('id', 'node-g')
 const linkPoints = mainG.append('g').attr('id', 'linkPointsG')
-let pointsG = null
+const pointsG = null
 
 const dragNodes = drag().on('drag', dragged)
 const dragPoints = drag().on('drag', pointsDragged)
@@ -189,7 +189,7 @@ function resetDrawPoints() {
 }
 
 function mousedown(event) {
-  pointsG = linkG.append('g').attr('class', 'points')
+  // pointsG = linkG.append('g').attr('class', 'points')
 
   resetDrawPoints()
   const [x, y] = pointer(event, svg)
@@ -243,17 +243,19 @@ function mousemove(event) {
   if (isDrawLink) {
     const [x, y] = pointer(event)
     const data = select(event.target).data()[0]
-    const target = {
+    let target = {
       x,
       y,
     }
-    console.log('dt', data)
 
-    if (data?.position) {
-      target.position = data.position
-      target.source = data.source
-      target.x = data.x
-      target.y = data.y
+    const {
+      source: { name: sourceName },
+    } = tempSourceData
+
+    const isSameNode = sourceName === data?.source?.name
+
+    if (data?.position && !isSameNode) {
+      target = data
     }
 
     drawLinePointEnd
@@ -272,8 +274,8 @@ function mousemove(event) {
 }
 
 function mouseup(event) {
-  pointsG.remove()
-  pointsG = null
+  // pointsG.remove()
+  // pointsG = null
   if (isDrawLink) {
     drawLinePointEnd.attr('pointer-events', 'all')
 
@@ -324,77 +326,65 @@ function renderPath(points) {
   const { source, target } = points
   const { width: nodeWidth, height: nodeHeight } = source.source
   const averagePixel = 15
-  const sourcePoints = updatePoints(points, 'source', target, averagePixel)
+  let sourcePoints = updatePoints(points, 'source', target, averagePixel)
   let path = `M${source.x},${source.y}`
 
-  console.log('what')
-  console.log(target)
   if (target.position) {
-    const {
-      position: sourcePosition,
-      source: { name: sourceName },
-    } = source
-    const {
-      position: targetPosition,
-      source: { name: targetName },
-    } = target
+    sourcePoints.pop()
+    sourcePoints = uniq(sourcePoints)
 
-    const isSameNode = sourceName === targetName
-    if (!isSameNode) {
-      const lastPoints = sourcePoints.at(-1)
-      lastPoints.x = target.x
-      lastPoints.y = target.y
-      // sourcePoints[sourcePoints.length - 1] = lastPoints
-    }
-    // sourcePoints.pop()
-    // sourcePoints = uniq(sourcePoints)
-    // const targetPoints = updatePoints(
-    //   points,
-    //   'target',
-    //   sourcePoints[0],
-    //   averagePixel
-    // )
+    const targetPoints = updatePoints(
+      points,
+      'target',
+      { x: source.x, y: source.y },
+      averagePixel
+    )
 
-    const customLine = []
-    // customLine.push(sourcePoints[0])
-    // customLine.push(sourcePoints[1])
-    // customLine.push(targetPoints[1])
-    // customLine.push(targetPoints[0])
-    // customLine.push(targetPoints[4])
-    // linkG
-    //   .append('path')
-    //   .attr('d', lineGenerator(targetPoints))
-    //   .attr('fill', 'none')
-    //   .attr('stroke', 'green')
-    //   .attr('stroke-width', '3px')
-
-    // sourcePoints = uniq(sourcePoints)
-    console.log('source', sourcePoints)
-    console.log('target', target)
+    const { position: sourcePosition } = tempSourceData
+    const { position: targetPosition } = target
+    const leftToRight = sourcePosition === 'right' && targetPosition === 'left'
+    const rightToLeft = sourcePosition === 'left' && targetPosition === 'right'
+    const topToBottom = sourcePosition === 'top' && targetPosition === 'bottom'
+    const bottomToTop = sourcePosition === 'bottom' && targetPosition === 'top'
     const firstPoint = sourcePoints[0]
     const { x, y } = firstPoint
     const { x: ex, y: ey } = target
     const xrvs = ex - x < 0 ? -1 : 1
     const yrvs = ey - y < 0 ? -1 : 1
-
     const w = Math.abs(ex - x) / 2
     const h = Math.abs(ey - y) / 2
 
-    const leftToRight = sourcePosition === 'right' && targetPosition === 'left'
-    const rightToLeft = sourcePosition === 'left' && targetPosition === 'right'
-    const topToBottom = sourcePosition === 'top' && targetPosition === 'bottom'
-    const bottomToTop = sourcePosition === 'bottom' && targetPosition === 'top'
+    // lineGenerator(targetPoints)
 
-    // path = `M${target.source.x},${target.source.y}`
-    // lineGenerator.curve(curveStep)
-    const myline = lineGenerator(sourcePoints)
-    path += myline.replace('M', 'L')
+    console.log(xrvs, yrvs)
+    if (leftToRight || rightToLeft) {
+    }
+
+    if (topToBottom || bottomToTop) {
+      console.log('TB')
+      // lineGenerator.curve(curveStepAfter)
+    }
+
+    console.log(sourcePoints)
+    // path = `M${points.source.x},${points.source.y}`
+    const myline = lineGenerator(targetPoints)
+    // path += myline.replace('M', 'L')
+
+    linkG
+      .append('path')
+      .attr('d', () => {
+        return `M${target.x},${target.y}${myline.replace('M', 'L')}`
+      })
+      .attr('fill', 'none')
+      .attr('stroke', 'green')
+      .attr('stroke-width', '3px')
+    lineGenerator.curve(curveStep)
   } else {
     path = `M${points.source.x},${points.source.y}`
     const myline = lineGenerator(sourcePoints)
     path += myline.replace('M', 'L')
+    lineGenerator.curve(curveStep)
   }
-  lineGenerator.curve(curveStep)
   return path
 }
 
@@ -432,20 +422,6 @@ function updatePoints(points, direction, targetPoints, averagePixel) {
     default:
       throw new Error('Invalid position')
   }
-  // if (!pointsG) {
-  //   pointsG = linkG.append('g').attr('class', 'points')
-  // } else {
-  //   // pointsG.remove()
-  //   pointsG
-  //     .append('circle')
-  //     .data(centerPoints)
-  //     .attr('r', 4)
-  //     .attr('cx', (d) => d.x)
-  //     .attr('cy', (d) => d.y)
-  //     .attr('fill', 'none')
-  //     .attr('stroke', 'blue')
-  //     .attr('stroke-width', '3px')
-  // }
 
   return centerPoints
 }
