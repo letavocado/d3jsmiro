@@ -10,8 +10,28 @@ import {
   curveStepAfter,
 } from 'd3'
 
+import ELK from 'elkjs'
+
 import { uniq } from './utils'
 import dataApi from '../api/data'
+
+const elk = new ELK()
+
+const graph = {
+  id: 'app',
+  layoutOptions: { 'elk.algorithm': 'layered' },
+  children: [
+    { id: 'n1', width: 30, height: 30 },
+    { id: 'n2', width: 30, height: 30 },
+    { id: 'n3', width: 30, height: 30 },
+  ],
+  edges: [
+    { id: 'e1', sources: ['n1'], targets: ['n2'] },
+    { id: 'e2', sources: ['n1'], targets: ['n3'] },
+  ],
+}
+
+elk.layout(graph).then(console.log).catch(console.error)
 
 const { nodes, links } = dataApi.getData()
 const width = +window.innerWidth
@@ -329,11 +349,12 @@ function renderPath(points) {
   let sourcePoints = updatePoints(points, 'source', target, averagePixel)
   let path = `M${source.x},${source.y}`
 
-  if (target.position) {
-    sourcePoints.pop()
+  console.log(sourcePoints)
+  if (target.position && false) {
+    // sourcePoints.pop()
     sourcePoints = uniq(sourcePoints)
 
-    const targetPoints = updatePoints(
+    let targetPoints = updatePoints(
       points,
       'target',
       { x: source.x, y: source.y },
@@ -358,22 +379,39 @@ function renderPath(points) {
 
     console.log(xrvs, yrvs)
     if (leftToRight || rightToLeft) {
+      // lineGenerator.curve(curveStepAfter)
     }
-
+    // lineGenerator.curve(curveStep)
     if (topToBottom || bottomToTop) {
       console.log('TB')
       // lineGenerator.curve(curveStepAfter)
     }
-
+    console.log(target.x, target.y)
     console.log(sourcePoints)
+    targetPoints = uniq(targetPoints.reverse())
+    console.log(targetPoints)
     // path = `M${points.source.x},${points.source.y}`
-    const myline = lineGenerator(targetPoints)
+    const pointsAll = []
+    pointsAll.push(sourcePoints[0])
+    pointsAll.push(sourcePoints[1])
+    pointsAll.push(targetPoints.at(-1))
+    pointsAll.push({ x: target.x, y: target.y })
+    // pointsAll.push(sourcePoints[0])
+    // pointsAll.push(sourcePoints[0])
+    // pointsAll.push(targetPoints[1])
+    // pointsAll.push(sourcePoints[1])
+    // pointsAll.push(sourcePoints[0])
+    // pointsAll.push(sourcePoints[1])
+    // pointsAll.push(sourcePoints[2])
+    // pointsAll.push(targetPoints[0])
+    // pointsAll.push(targetPoints[3])
+    const myline = lineGenerator(pointsAll)
     // path += myline.replace('M', 'L')
 
     linkG
       .append('path')
       .attr('d', () => {
-        return `M${target.x},${target.y}${myline.replace('M', 'L')}`
+        return `M${source.x},${source.y}${myline.replace('M', 'L')}`
       })
       .attr('fill', 'none')
       .attr('stroke', 'green')
@@ -443,19 +481,19 @@ function updateTopPoints({
 
   const firstPoint = { x, y }
   const secondPoint = { x, y }
-  const thirdPoint = { x, y: targetPoints.y + Math.abs(deltaY) / 2 }
+  const thirdPoint = { x, y }
 
   if (Math.abs(deltaX) > Math.abs(deltaY)) {
-    curveType = curveStepBefore
+    curveType = curveStep
   }
 
   // if line near to rect
   if (deltaY > -5) {
-    curveType = curveStepBefore
+    curveType = curveStepAfter
 
-    firstPoint.y = points[direction].y - averagePixel
-    secondPoint.y = firstPoint.y
-    thirdPoint.y = firstPoint.y
+    thirdPoint.y = points[direction].y - averagePixel
+    // secondPoint.y = firstPoint.y
+    // thirdPoint.y = firstPoint.y
 
     if (Math.abs(deltaX) < nodeHeight / 2 + averagePixel) {
       if (deltaX < 0) {
@@ -465,15 +503,15 @@ function updateTopPoints({
       }
     }
 
-    if (Math.abs(deltaX) > nodeWidth / 2 + averagePixel) {
-      secondPoint.x = points[direction].x
-      thirdPoint.x = targetPoints.x - deltaX / 2
-    }
+    // if (Math.abs(deltaX) > nodeWidth / 2 + averagePixel) {
+    //   secondPoint.x = points[direction].x
+    //   thirdPoint.x = targetPoints.x - deltaX / 2
+    // }
 
-    if (Math.abs(deltaY) > nodeHeight / 2 + averagePixel) {
-      curveType = curveStepAfter
-      thirdPoint.y = targetPoints.y - deltaY / 2
-    }
+    // if (Math.abs(deltaY) > nodeHeight / 2 + averagePixel) {
+    //   curveType = curveStepAfter
+    //   thirdPoint.y = targetPoints.y - deltaY / 2
+    // }
   }
 
   lineGenerator.curve(curveType)
