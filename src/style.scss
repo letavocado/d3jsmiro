@@ -49,8 +49,12 @@ body {
   }
 }
 
-.linkPath {
+.linkWrap {
   cursor: pointer;
+
+  &.selected {
+    stroke: var(--color-indigo);
+  }
 }
 
 circle[class^='drawlinePoint'] {

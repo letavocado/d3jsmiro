@@ -8,11 +8,11 @@ const height = +window.innerHeight
 
 const nodeHeight = 100
 const nodeWidth = 100
+const averagePixel = 15
 
-let drawSourceNode
-let drawTargeteNode
 let tempSourceData
 let tempTargetData
+let selectedLink
 
 const data = {
   nodes: [
@@ -51,13 +51,16 @@ const svg = d3
   .on('mousemove', mousemove)
   .on('mouseup', (e) => {
     nodeG.classed('drawing', false)
-    console.log('1')
 
     if (e.target.tagName !== 'circle') {
       isDrawLink = false
       if (drawingLine) {
         drawingLine.remove()
       }
+    }
+
+    if (!e.target.classList.contains('linkWrap')) {
+      deselectLink()
     }
   })
 
@@ -80,8 +83,6 @@ function mousemove(event) {
   textItem.text(`x: ${target[0]}, y: ${target[1]}`)
 
   if (isDrawLink) {
-    const source = d3.pointer(drawSourceNode, drawSourceNode.target)
-
     nodeG.classed('drawing', true)
     const [x, y] = d3.pointer(event)
     const data = d3.select(event.target).data()[0]
@@ -96,7 +97,6 @@ function mousemove(event) {
     } = tempSourceData
 
     const isSameNode = sourceName === data?.source?.name
-    console.log(data)
     if (data?.position && !isSameNode) {
       target = data
     }
@@ -115,6 +115,8 @@ const dragNodes = d3.drag().on('drag', dragged)
 function dragged(e, d) {
   d.pointX += e.dx
   d.pointY += e.dy
+
+  deselectLink()
 
   const node = d3.select(this).attr('x', d.pointX).attr('y', d.pointY)
   const nodeData = node.data()[0]
@@ -155,7 +157,7 @@ function dragged(e, d) {
 
   filterData.forEach((e) => {
     const className = e.source.source.name + e.target.source.name + e.pathIndex
-    linkG.select(`path.${className}`).attr('d', renderPath)
+    linkG.selectAll(`path.${className}`).attr('d', renderPath)
   })
 }
 
@@ -242,11 +244,12 @@ function renderCircles(selection) {
 
 function mousedown(event) {
   isDrawLink = true
-  drawSourceNode = event
   tempSourceData = d3.select(event.target).data()[0]
   const [x, y] = d3.pointer(event, svg)
 
   drawingLine = linkG
+    .append('g')
+    .attr('class', 'pathG')
     .append('path')
     .attr('d', () =>
       renderPath({
@@ -257,7 +260,6 @@ function mousedown(event) {
     .attr('fill', 'none')
     .attr('stroke', '#ffd02f')
     .attr('stroke-width', '3px')
-  // .mousedown
 }
 
 function mouseup(event) {
@@ -288,8 +290,26 @@ function mouseup(event) {
       commonLinksOfNodes.length
 
     data.links.push(obj)
+    const pathG = d3
+      .select(drawingLine.node().parentElement)
+      .attr('class', className)
     drawingLine.data([obj])
-    drawingLine.attr('class', 'linkPath')
+
+    const pathWrap = drawingLine
+      .clone()
+      .attr('class', `linkWrap ${className}`)
+      .attr('stroke-width', '9px')
+      .attr('stroke', 'transparent')
+      .on('mousedown', function () {
+        deselectLink()
+
+        selectedLink = d3.select(this).classed('selected', true)
+        d3.select(selectedLink.node().parentElement).raise()
+
+        createDragPoints()
+      })
+    pathG.append(() => pathWrap.node())
+
     drawingLine.attr('class', `linkPath ${className}`)
 
     drawingLine.attr('d', () =>
@@ -313,7 +333,7 @@ function create4Points(e) {
   return dotPointsData
 }
 
-function updatePoints(points, direction, targetPoints, averagePixel) {
+function updatePoints(points, direction, targetPoints) {
   const { x, y, source, position } = points[direction]
   const firstPoint = { x, y }
   const secondPoint = { x, y }
@@ -511,7 +531,6 @@ function renderPath(points) {
   const { source, target } = points
   const { position: sourcePosition } = source
   const { position: targetPosition } = target
-  const averagePixel = 15
   let sourcePoints = updatePoints(points, 'source', points.target, averagePixel)
   let path = `M${points.source.x},${points.source.y}`
 
@@ -543,6 +562,7 @@ function renderPath(points) {
     const bottomToTop = sourcePosition === 'bottom' && targetPosition === 'top'
 
     if (targetPoints.length >= 3 || sourcePoints.length >= 3) {
+      console.log('this')
       if (leftToRight || rightToLeft) {
         if (h >= nodeHeight / 2 + averagePixel) {
           if (sourcePoints.length >= 2) {
@@ -647,4 +667,19 @@ function updateSinglePoints(e, i) {
   }
 
   return singlePoint
+}
+
+function deselectLink() {
+  if (selectedLink) {
+    selectedLink.classed('selected', false)
+    selectedLink = null
+  }
+}
+
+function createDragPoints() {
+  const data = selectedLink.data()[0]
+  const { source, target } = data
+  console.log(source, target)
+  const sourcePoints = uniq(updatePoints({ source, target }, 'source', target))
+  console.log(sourcePoints)
 }
