@@ -700,8 +700,13 @@ function deselectLink() {
 
 function createDragPoints() {
   const data = selectedLink.data()[0]
-  const path = selectedLink.selectChild('.linkPath').attr('d')
-  const splitPath = path.split('L').filter((s) => !s.includes('Z'))
+  const linkPath = selectedLink.selectChild('.linkPath')
+  const pathD = linkPath.attr('d')
+  const pathNode = linkPath.node()
+  const totalLength = pathNode.getTotalLength()
+  const centerPoints = pathNode.getPointAtLength(totalLength / 2)
+
+  const splitPath = pathD.split('L').filter((s) => !s.includes('Z'))
   const points = splitPath.splice(1, splitPath.length - 2)
   const uniqPoints = [...new Set(points)]
 
@@ -711,7 +716,7 @@ function createDragPoints() {
     return { x: splitted[0], y: splitted[1] }
   })
 
-  console.log(pointsObj)
+  console.log(linkPath.node())
 
   const { sourcePoints, targetPoints } = getComputedPoints(data)
   const dragPointsG = selectedLink.append('g').attr('class', 'dragPointsG')
