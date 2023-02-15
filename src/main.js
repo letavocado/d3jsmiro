@@ -702,14 +702,17 @@ function createDragPoints() {
   const data = selectedLink.data()[0]
   const { path } = data
   const splitPath = path.split('L').filter((s) => !s.includes('Z'))
-  console.log(splitPath)
   const points = splitPath.splice(1, splitPath.length - 2)
   const uniqPoints = [...new Set(points)]
+
   const pointsObj = uniqPoints.map((e) => {
     const splitted = e.split(',')
 
     return { x: splitted[0], y: splitted[1] }
   })
+
+  console.log(pointsObj)
+
   const { sourcePoints, targetPoints } = getComputedPoints(data)
   const dragPointsG = selectedLink.append('g').attr('class', 'dragPointsG')
   dragPointsG
