@@ -700,7 +700,7 @@ function deselectLink() {
 
 function createDragPoints() {
   const data = selectedLink.data()[0]
-  const { path } = data
+  const path = selectedLink.selectChild('.linkPath').attr('d')
   const splitPath = path.split('L').filter((s) => !s.includes('Z'))
   const points = splitPath.splice(1, splitPath.length - 2)
   const uniqPoints = [...new Set(points)]
