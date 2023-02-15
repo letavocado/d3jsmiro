@@ -56,8 +56,3 @@ body {
     stroke: var(--color-indigo);
   }
 }
-
-circle[class^='drawlinePoint'] {
-  fill: var(--color-white);
-  stroke: var(--color-yellow);
-}

@@ -528,114 +528,123 @@ function updatePoints(points, direction, targetPoints) {
 }
 
 function renderPath(points) {
-  const { source, target } = points
-  const { position: sourcePosition } = source
-  const { position: targetPosition } = target
+  const { target } = points
   let sourcePoints = updatePoints(points, 'source', points.target, averagePixel)
   let path = `M${points.source.x},${points.source.y}`
 
   if (target.position) {
-    sourcePoints.pop()
-    sourcePoints = uniq(sourcePoints)
-
-    let targetPoints = updatePoints(
-      points,
-      'target',
-      sourcePoints.at(-1),
-      averagePixel
-    )
-    targetPoints = uniq(targetPoints)
-    targetPoints.reverse()
-
-    const firstPoint = sourcePoints[0]
-    const lastPoints = targetPoints.at(-1)
-    const { x, y } = firstPoint
-    const { x: ex, y: ey } = lastPoints
-    const xrvs = ex - x < 0 ? -1 : 1
-    const yrvs = ey - y < 0 ? -1 : 1
-    const h = Math.abs(ey - y) / 2
-    const w = Math.abs(ex - x) / 2
-
-    const leftToRight = sourcePosition === 'left' && targetPosition === 'right'
-    const rightToLeft = sourcePosition === 'right' && targetPosition === 'left'
-    const topToBottom = sourcePosition === 'top' && targetPosition === 'bottom'
-    const bottomToTop = sourcePosition === 'bottom' && targetPosition === 'top'
-
-    if (targetPoints.length >= 3 || sourcePoints.length >= 3) {
-      console.log('this')
-      if (leftToRight || rightToLeft) {
-        if (h >= nodeHeight / 2 + averagePixel) {
-          if (sourcePoints.length >= 2) {
-            sourcePoints.at(-1).x = x
-            sourcePoints.at(-1).y = y + h * yrvs
-            targetPoints[0].x = x
-            targetPoints[0].y = y + h * yrvs
-          } else {
-            sourcePoints.push({ x, y: y + h * yrvs })
-            targetPoints[0] = { x, y: y + h * yrvs }
-          }
-
-          if (targetPoints.length >= 2) {
-            targetPoints[1].y = y + h * yrvs
-          }
-        } else if (w >= nodeWidth + averagePixel * 2) {
-          sourcePoints.at(-1).x = sourcePoints[0].x
-
-          if (sourcePoints.length >= 2) {
-            sourcePoints.at(-1).y = sourcePoints[1].y
-          }
-
-          targetPoints[0].x = x + w * xrvs
-          lineGenerator.curve(d3.curveStepBefore)
-          targetPoints[1].x =
-            targetPoints.length === 3 ? targetPoints.at(-1).x : x + w * xrvs
-        }
-      }
-
-      if (topToBottom || bottomToTop) {
-        if (w >= nodeWidth / 2 + averagePixel) {
-          if (sourcePoints.length >= 2) {
-            sourcePoints.at(-1).x = x + w * xrvs
-            sourcePoints.at(-1).y = y
-            targetPoints[0].x = x + w * xrvs
-            targetPoints[0].y = y
-          } else {
-            sourcePoints.push({ x: x + w * xrvs, y })
-            targetPoints[0] = { x: x + w * xrvs, y }
-          }
-
-          if (targetPoints.length >= 2) {
-            targetPoints[1].x = x + w * xrvs
-          }
-        } else if (h >= nodeHeight + averagePixel * 2) {
-          sourcePoints.at(-1).y = sourcePoints[0].y
-
-          if (sourcePoints.length >= 2) {
-            sourcePoints.at(-1).x = sourcePoints[1].x
-          }
-
-          targetPoints[0].y = y + h * yrvs
-
-          if (targetPoints.length >= 2) {
-            targetPoints[1].y = y + h * yrvs
-          }
-        }
-      }
-    }
+    const computedPoints = getComputedPoints(points)
+    sourcePoints = computedPoints.sourcePoints
+    const { targetPoints } = computedPoints
 
     path += lineGenerator(sourcePoints).replace('M', 'L')
     const lastPath = lineGenerator(targetPoints).replace('M', 'L')
     path += lastPath
-    lineGenerator.curve(d3.curveStep)
     path += `L${points.target.x},${points.target.y}`
   } else {
-    path = `M${points.source.x},${points.source.y}`
     const newLine = lineGenerator(sourcePoints)
     path += newLine.replace('M', 'L')
-    lineGenerator.curve(d3.curveStep)
   }
 
+  lineGenerator.curve(d3.curveStep)
   return path
+}
+
+function getComputedPoints(points) {
+  console.log(points)
+  const { source, target } = points
+  const { position: sourcePosition } = source
+  const { position: targetPosition } = target
+  let sourcePoints = updatePoints(points, 'source', points.target, averagePixel)
+
+  sourcePoints.pop()
+  sourcePoints = uniq(sourcePoints)
+
+  let targetPoints = updatePoints(
+    points,
+    'target',
+    sourcePoints.at(-1),
+    averagePixel
+  )
+  targetPoints = uniq(targetPoints)
+  targetPoints.reverse()
+
+  const firstPoint = sourcePoints[0]
+  const lastPoints = targetPoints.at(-1)
+  const { x, y } = firstPoint
+  const { x: ex, y: ey } = lastPoints
+  const xrvs = ex - x < 0 ? -1 : 1
+  const yrvs = ey - y < 0 ? -1 : 1
+  const h = Math.abs(ey - y) / 2
+  const w = Math.abs(ex - x) / 2
+
+  const leftToRight = sourcePosition === 'left' && targetPosition === 'right'
+  const rightToLeft = sourcePosition === 'right' && targetPosition === 'left'
+  const topToBottom = sourcePosition === 'top' && targetPosition === 'bottom'
+  const bottomToTop = sourcePosition === 'bottom' && targetPosition === 'top'
+
+  if (targetPoints.length >= 3 || sourcePoints.length >= 3) {
+    if (leftToRight || rightToLeft) {
+      if (h >= nodeHeight / 2 + averagePixel) {
+        if (sourcePoints.length >= 2) {
+          sourcePoints.at(-1).x = x
+          sourcePoints.at(-1).y = y + h * yrvs
+          targetPoints[0].x = x
+          targetPoints[0].y = y + h * yrvs
+        } else {
+          sourcePoints.push({ x, y: y + h * yrvs })
+          targetPoints[0] = { x, y: y + h * yrvs }
+        }
+
+        if (targetPoints.length >= 2) {
+          targetPoints[1].y = y + h * yrvs
+        }
+      } else if (w >= nodeWidth + averagePixel * 2) {
+        sourcePoints.at(-1).x = sourcePoints[0].x
+
+        if (sourcePoints.length >= 2) {
+          sourcePoints.at(-1).y = sourcePoints[1].y
+        }
+
+        targetPoints[0].x = x + w * xrvs
+        lineGenerator.curve(d3.curveStepBefore)
+        targetPoints[1].x =
+          targetPoints.length === 3 ? targetPoints.at(-1).x : x + w * xrvs
+      }
+    }
+
+    if (topToBottom || bottomToTop) {
+      if (w >= nodeWidth / 2 + averagePixel) {
+        if (sourcePoints.length >= 2) {
+          sourcePoints.at(-1).x = x + w * xrvs
+          sourcePoints.at(-1).y = y
+          targetPoints[0].x = x + w * xrvs
+          targetPoints[0].y = y
+        } else {
+          sourcePoints.push({ x: x + w * xrvs, y })
+          targetPoints[0] = { x: x + w * xrvs, y }
+        }
+
+        if (targetPoints.length >= 2) {
+          targetPoints[1].x = x + w * xrvs
+        }
+      } else if (h >= nodeHeight + averagePixel * 2) {
+        sourcePoints.at(-1).y = sourcePoints[0].y
+
+        if (sourcePoints.length >= 2) {
+          sourcePoints.at(-1).x = sourcePoints[1].x
+        }
+
+        targetPoints[0].y = y + h * yrvs
+
+        if (targetPoints.length >= 2) {
+          targetPoints[1].y = y + h * yrvs
+        }
+      }
+    }
+  }
+
+  return { sourcePoints, targetPoints }
 }
 
 function updateSinglePoints(e, i) {
@@ -678,8 +687,5 @@ function deselectLink() {
 
 function createDragPoints() {
   const data = selectedLink.data()[0]
-  const { source, target } = data
-  console.log(source, target)
-  const sourcePoints = uniq(updatePoints({ source, target }, 'source', target))
-  console.log(sourcePoints)
+  console.log(getComputedPoints(data))
 }
