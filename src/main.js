@@ -64,7 +64,7 @@ const svg = d3
     }
   })
 
-const linkG = svg.append('g').attr('class', 'linkG')
+const linkG = svg.append('g').attr('id', 'linkG')
 const nodeG = svg.append('g').attr('id', 'nodeG')
 
 const lineGenerator = d3
@@ -110,7 +110,8 @@ function mousemove(event) {
   }
 }
 
-const dragNodes = d3.drag().on('drag', dragged)
+const dragNode = d3.drag().on('drag', dragged)
+const dragLine = d3.drag().on('drag', lineDragged)
 
 function dragged(e, d) {
   d.pointX += e.dx
@@ -161,6 +162,11 @@ function dragged(e, d) {
   })
 }
 
+function lineDragged(e, d) {
+  console.log(e, d)
+  console.log(e.subject)
+}
+
 function getPositionIndex(position) {
   switch (position) {
     case 'top':
@@ -204,7 +210,7 @@ function renderNodes(selection) {
     .style('fill', 'transparent')
     .style('stroke', '#56445D')
     .style('stroke-width', '2px')
-    .call(dragNodes)
+    .call(dragNode)
     .transition()
     .duration(300)
     .attr('width', nodeWidth)
@@ -223,7 +229,7 @@ function renderCircles(selection) {
 
   circleG
     .append('circle')
-    .attr('r', 20)
+    .attr('r', 4)
     .attr('fill', 'transparent')
     .attr('data-type', 'point')
     .attr('class', 'circleWrap')
@@ -313,6 +319,8 @@ function mouseup(event) {
 
         createDragPoints()
       })
+      .call(dragLine)
+
     pathG.append(() => pathWrap.node())
 
     drawingLine.attr('class', `linkPath ${className}`)
@@ -556,7 +564,6 @@ function renderPath(points) {
 }
 
 function getComputedPoints(points) {
-  console.log(points)
   const { source, target } = points
   const { position: sourcePosition } = source
   const { position: targetPosition } = target
@@ -686,11 +693,33 @@ function updateSinglePoints(e, i) {
 function deselectLink() {
   if (selectedLink) {
     selectedLink.classed('selected', false)
+    selectedLink.select('.dragPointsG').remove()
     selectedLink = null
   }
 }
 
 function createDragPoints() {
   const data = selectedLink.data()[0]
-  console.log(getComputedPoints(data))
+  const { path } = data
+  const splitPath = path.split('L').filter((s) => !s.includes('Z'))
+  console.log(splitPath)
+  const points = splitPath.splice(1, splitPath.length - 2)
+  const uniqPoints = [...new Set(points)]
+  const pointsObj = uniqPoints.map((e) => {
+    const splitted = e.split(',')
+
+    return { x: splitted[0], y: splitted[1] }
+  })
+  const { sourcePoints, targetPoints } = getComputedPoints(data)
+  const dragPointsG = selectedLink.append('g').attr('class', 'dragPointsG')
+  dragPointsG
+    .selectAll('rect.points')
+    .data(pointsObj)
+    .join('rect')
+    .attr('class', 'points')
+    .attr('x', (d) => d.x - 5.5)
+    .attr('y', (d) => d.y - 5.5)
+    .attr('width', 10)
+    .attr('height', 10)
+    .style('stroke-width', '1px')
 }
