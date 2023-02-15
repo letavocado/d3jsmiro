@@ -49,10 +49,14 @@ body {
   }
 }
 
-.linkWrap {
-  cursor: pointer;
+.pathG {
+  .linkWrap {
+    cursor: pointer;
+  }
 
   &.selected {
-    stroke: var(--color-indigo);
+    .linkPath {
+      stroke: var(--color-indigo);
+    }
   }
 }

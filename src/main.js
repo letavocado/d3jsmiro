@@ -290,10 +290,12 @@ function mouseup(event) {
       commonLinksOfNodes.length
 
     data.links.push(obj)
+    drawingLine.data([obj])
+
     const pathG = d3
       .select(drawingLine.node().parentElement)
-      .attr('class', className)
-    drawingLine.data([obj])
+      .data([obj])
+      .attr('class', `pathG ${className}`)
 
     const pathWrap = drawingLine
       .clone()
@@ -302,9 +304,12 @@ function mouseup(event) {
       .attr('stroke', 'transparent')
       .on('mousedown', function () {
         deselectLink()
+        const node = d3.select(this)
+        selectedLink = d3
+          .select(node.node().parentElement)
+          .classed('selected', true)
 
-        selectedLink = d3.select(this).classed('selected', true)
-        d3.select(selectedLink.node().parentElement).raise()
+        selectedLink.raise()
 
         createDragPoints()
       })
